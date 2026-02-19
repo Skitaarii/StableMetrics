@@ -8,6 +8,11 @@
     <header>
       <h1>UMA SCORE CALCULATOR</h1>
     </header>
+    <nav aria-label="Navigation principale">
+      <ul>
+        <li><a href="home.html">back to home page</a></li>
+      </ul>
+    </nav>
     <main>
       <h1>enter stats</h1>
 
@@ -35,7 +40,16 @@
             required
           />
         </p>
-
+        <p>
+          <label for="dirt">dirt aptitude</label><br />
+          <select name="dirt" id="dirt" required>
+            <option value="">--</option>
+            <option value="S+">S+</option>
+            <option value="S">S</option>
+            <option value="A+">A+</option>
+            <option value="A">A</option>
+          </select>
+        </p>
         <button type="submit">Enregistrer</button>
       </form>
     </main>
