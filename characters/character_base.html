@@ -1,5 +1,11 @@
 <!DOCTYPE html>
 <html>
+
+
+<!--Il faudra regarder pour link a une database ou du js, plus API pour remplir dynamiquement selon id du perso-->
+
+
+
 <head>
     <meta charset="UTF-8">
     <title>character</title>
@@ -9,19 +15,19 @@
       <h1>character</h1>
     </header>
 
-    <nav aria-label="Navigation principale">
+    <nav aria-label="navigation-principale">
       <ul>
         <li><a href="../home.html">back to home page</a></li>
         <li><a href="../characters.html">all umas</a></li>
       </ul>
     </nav>
 
-    <main>
+    <main class="profile-section">
 
       <iframe 
         width="560" height="315" 
         src="https://www.youtube-nocookie.com/embed/s2FX-kAgzaE?autoplay=1&mute=1&loop=1&playlist=s2FX-kAgzaE&modestbranding=1&rel=0"
-        title="YouTube video player" frameborder="0" 
+        title="character-intro-video" frameborder="0" 
         allow="autoplay; encrypted-media; picture-in-picture; web-share" 
         
         
@@ -29,29 +35,99 @@
       </iframe>
 
       <section>
-        <h2>full name</h2>
-        
-        <article>
-          <h3>lore</h3>
-          <p>lorem ipsum truc</p>
-        </article>
+        <div class="profile-summary">
+          <h2 class="character-name">insert name</h2>
+          <p class="character-title">insert title</p>
 
-        <article>
-          <h3>history</h3>
-          <p>lorem ipsum dipsum</p>
-        </article>
+          <div class="quick-stats">
+            <div>
+              <span class="label">insert rarity</span>
+              <span class="value">insert stars</span>
+            </div>
+            <div>
+              <span class="label">insert terrain preferences</span>
+              <span class="value">terrain preferences</span>
+            </div>
+            <div>
+              <span class="label">insert preferred lengths</span>
+              <span class="value">running lengths</span>
+            </div>
+            <div>
+              <span class="label">insert running style</span>
+              <span class="value">running styles</span>
+            </div>
+          </div>
+        </div>
 
-        <article>
-          <h3>stats</h3>
-          <p>lorem ipsum dipsum flitsum</p>
-        </article>
+      </section>
 
+      <section class="uma-section">
+        <h3>Uma Musume Profile</h3>
+        <article>
+          <h4>Lore</h4>
+          <p>Lorem ipsum type shi</p>
+        </article>
+        <article>
+          <h4>Base stats</h4>
+          <ul>
+            <li>Speed: </li>
+            <li>Stamine: </li>
+            <li>Power: </li>
+            <li>Guts: </li>
+            <li>Wit: </li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="horse-section">
+        <h3>Race Horse Profile</h3>
+        <article>
+          <h4>Background</h4>
+          <p>Lorem ipsum but horse</p>
+        </article>
+        <article>
+          <h4>Carreer Record</h4>
+          <ul>
+            <li>Total Races</li>
+            <li>Wins: </li>
+            <li>Win Rate:</li>
+            <li>Grade I Wins:</li>
+            <li>Major Titles:</li>
+          </ul>
+        </article>
+        <article>
+          <h4>Race History</h4>
+          <table>
+            <thread>
+              <tr>
+                <th>Date</th>
+                <th>Race</th>
+                <th>Distance</th>
+                <th>Position</th>
+              </tr>
+            </thread>
+            <tbody>
+              <tr>
+                <td>insert date</td>
+                <td>insert race name</td>
+                <td>insert distance</td>
+                <td>insert position</td>
+              </tr>
+              <tr>
+                <td>more date</td>
+                <td>more race name</td>
+                <td>more distance</td>
+                <td>more position</td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
       </section>
     </main>
 
+  <footer>
+    <p>&copy; Neb5384 & Skitaarii</p>
+  </footer>
 </body>
 
-<footer >
-    <p>&copy; Neb5384 & Skitaarii</p>
-</footer>
 </html>
