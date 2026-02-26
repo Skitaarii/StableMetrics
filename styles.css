@@ -96,9 +96,12 @@ main {
     flex-wrap: wrap;
     justify-content: center;
     gap: 1px;
-    border-radius: 4px;
-    background: linear-gradient(45deg, #ffe9f3, #ebf9ff);
-
+    border-radius: 20px;
+    background: 
+        linear-gradient(45deg, #ff9cc990, #c1ecff9c),
+        url("img/seemless.jpg");
+    background-repeat: repeat;
+    background-position: center;
 }
 
 .character-list a p{
@@ -108,12 +111,12 @@ main {
 
 .character-list article {
     width: 350px;
-    text-align: center
+    text-align: center;
 }
 
 .character-list article img {
     width: 100%;     /* makes the image fill the article width */
-    height: auto;    /* keeps the aspect ratio */
+    height: auto;   /* keeps the aspect ratio */
 }
 
 
