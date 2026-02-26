@@ -26,16 +26,14 @@ Netkeiba scraper -> Netkeiba has a pretty good database of every data we should 
     </nav>
 
     <main class="profile-section">
-
-      <iframe 
-        width="560" height="315" 
-        src="https://www.youtube-nocookie.com/embed/s2FX-kAgzaE?autoplay=1&mute=1&loop=1&playlist=s2FX-kAgzaE&modestbranding=1&rel=0"
-        title="character-intro-video" frameborder="0" 
-        allow="autoplay; encrypted-media; picture-in-picture; web-share" 
-        
-        
-        allowfullscreen>
-      </iframe>
+      <div class = "video-wrapper">
+        <iframe class = "youtube-video"
+          src="https://www.youtube-nocookie.com/embed/s2FX-kAgzaE?autoplay=1&mute=1&loop=1&playlist=s2FX-kAgzaE&modestbranding=1&rel=0"
+          title="character-intro-video" frameborder="0" 
+          allow="autoplay; encrypted-media; picture-in-picture; web-share" 
+          allowfullscreen>
+        </iframe>
+      </div>
 
       <section>
         <div class="profile-summary">
@@ -73,11 +71,41 @@ Netkeiba scraper -> Netkeiba has a pretty good database of every data we should 
         <article>
           <h4>Base stats</h4>
           <ul>
-            <li>Speed: </li>
-            <li>Stamine: </li>
-            <li>Power: </li>
-            <li>Guts: </li>
-            <li>Wit: </li>
+            <li>Speed: 
+              <div class="bar">
+                <div class="bar-inner" data-width = "25%">
+                  <div class="bar-gradient"></div>
+                </div>
+              </div>
+            </li>
+            <li>Stamine:
+              <div class="bar">
+                <div class="bar-inner" data-width = "40%">
+                  <div class="bar-gradient"></div>
+                </div>
+              </div>  
+            </li>
+            <li>Power: 
+              <div class="bar">
+                <div class="bar-inner" data-width = "20%">
+                  <div class="bar-gradient"></div>
+                </div>
+              </div> 
+            </li>
+            <li>Guts: 
+              <div class="bar">
+                <div class="bar-inner" data-width = "60%">
+                  <div class="bar-gradient"></div>
+                </div>
+              </div> 
+            </li>
+            <li>Wit: 
+              <div class="bar">
+                <div class="bar-inner" data-width = "95%">
+                  <div class="bar-gradient"></div>
+                </div>
+              </div> 
+            </li>
           </ul>
         </article>
       </section>
@@ -132,5 +160,21 @@ Netkeiba scraper -> Netkeiba has a pretty good database of every data we should 
     <p>&copy; Neb5384 & Skitaarii</p>
   </footer>
 </body>
+
+<script>
+const bars = document.querySelectorAll('.bar-inner');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const bar = entry.target;
+      bar.style.width = bar.dataset.width;
+      observer.unobserve(bar); // animate only once
+    }
+  });
+}, { threshold: 0.5 }); // 50% visible triggers
+
+bars.forEach(bar => observer.observe(bar));
+</script>
 
 </html>

@@ -13,6 +13,7 @@ body {
 
 h1, h2, h3, h4 {
     font-weight: 600;
+    text-align: center;
 }
 
 section {
@@ -24,7 +25,7 @@ section {
 header {
     padding: 1.5rem 2rem;
     background: linear-gradient(90deg, #ff7eb9, #7ed6ff);
-    color: white;
+    color: rgb(255, 255, 255);
 }
 
 header h1 {
@@ -40,12 +41,17 @@ nav {
 }
 
 nav ul {
+    max-width: 1100px;
+    margin:auto;
     display: flex;
+    justify-content: space-around;
     gap: 1.5rem;
     list-style: none;
 }
 
 nav a {
+    font-family:'Arial Narrow Bold', sans-serif;
+    font-size: 1.8rem;
     text-decoration: none;
     color: #444;
     font-weight: 500;
@@ -66,13 +72,50 @@ main {
 
 /* Character profile page */
 
-.profile-section iframe {
-    width: 100%;
-    height: 400px;
+.video-wrapper {
+    position: relative;
+    max-width: 100%;
+    aspect-ratio: 16 / 9;
     border-radius: 16px;
+    overflow: hidden;
     box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     margin-bottom: 2rem;
 }
+
+.video-wrapper iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+/* character List Page*/
+
+.character-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1px;
+    border-radius: 4px;
+    background: linear-gradient(45deg, #ffe9f3, #ebf9ff);
+
+}
+
+.character-list a p{
+    color:#2c2c2c;
+    left:50%;
+}
+
+.character-list article {
+    width: 350px;
+    text-align: center
+}
+
+.character-list article img {
+    width: 100%;     /* makes the image fill the article width */
+    height: auto;    /* keeps the aspect ratio */
+}
+
 
 /* Summary Card */
 
@@ -144,6 +187,28 @@ main {
 .horse-section h3 {
     color: #4CAF50;
     margin-bottom: 1rem;
+}
+
+.bar {
+  max-width:500px;
+  height: 12px;
+  background: #cbd5e0;
+  border-radius: 500px;
+  overflow: hidden;
+}
+
+.bar-inner {
+  width:0%;
+  height: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: width 0.8s ease-in;
+}
+
+.bar-gradient {
+  width: 500px; /* full gradient width, larger than bar-inner */
+  height: 100%;
+  background: linear-gradient(90deg,#ff18aa,#ffc813,#00ca07);
 }
 
 article {
@@ -252,9 +317,5 @@ footer {
     nav ul {
         flex-direction: column;
         gap: 0.8rem;
-    }
-
-    .profile-section iframe {
-        height: 250px;
     }
 }
