@@ -96,7 +96,8 @@ main {
     flex-wrap: wrap;
     justify-content: center;
     gap: 1px;
-    border-radius: 20px;
+    border-radius: 16px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
     background: 
         linear-gradient(45deg, #ff9cc990, #c1ecff9c),
         url("img/seemless.jpg");
