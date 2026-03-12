@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "apify-client": "^2.22.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"

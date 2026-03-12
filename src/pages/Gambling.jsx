@@ -45,21 +45,35 @@ function calcPayout(bet, odds) {
 }
 
 function simulateRace(racers, ticks) {
-  const speeds    = Object.fromEntries(racers.map(r => [r.id, Math.random() * 0.4 + 0.8]))
+  const speeds = Object.fromEntries(
+    racers.map(r => [r.id, Math.random() * 0.4 + 0.8])
+  )
+
   const snapshots = []
   const positions = Object.fromEntries(racers.map(r => [r.id, 0]))
+  const finishTick = {}
 
   for (let t = 0; t < ticks; t++) {
     racers.forEach(r => {
+      if (finishTick[r.id] !== undefined) return
+
       const surge = Math.random() < 0.1 ? Math.random() * 3 : 0
-      positions[r.id] = Math.min(100, positions[r.id] + speeds[r.id] * (Math.random() * 1.5 + 0.5) + surge)
+      positions[r.id] += speeds[r.id] * (Math.random() * 1.5 + 0.5) + surge
+
+      if (positions[r.id] >= 100) {
+        finishTick[r.id] = t
+        positions[r.id] = 100
+      }
     })
+
     snapshots.push({ ...positions })
   }
 
-  const winner = racers.reduce((best, r) => positions[r.id] > positions[best.id] ? r : best)
-  snapshots[snapshots.length - 1][winner.id] = 100
-  return { snapshots, winnerId: winner.id }
+  const winner = racers
+    .filter(r => finishTick[r.id] !== undefined)
+    .sort((a, b) => finishTick[a.id] - finishTick[b.id])[0]
+
+  return { snapshots, winnerId: winner?.id ?? racers[0].id }
 }
 
 // betting
@@ -137,8 +151,7 @@ function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet
               ))}
               <button
                 className={`g-quick-btn all-in ${parsedAmt === balance ? 'active' : ''}`}
-                onClick={() => setAmount(String(balance))}
-              >
+                onClick={() => setAmount(String(balance))}>
                 ALL IN
               </button>
             </div>
@@ -180,7 +193,7 @@ function RacePhase({ racers, positions, bet }) {
       <h2 className="g-race-title">Race in progress!</h2>
       {bet && (
         <p className="g-bet-reminder">
-          Rooting for <strong>{racers.find(r => r.id === bet.racerId)?.name}</strong> 🤞
+          Rooting for <strong>{racers.find(r => r.id === bet.racerId)?.name}</strong>
         </p>
       )}
       <div className="g-track">
@@ -205,7 +218,7 @@ function RacePhase({ racers, positions, bet }) {
 // results
 
 function ResultsPhase({ racers, winnerId, bet, payout, balance, odds, onNextRace }) {
-  const winner   = racers.find(r => r.id === winnerId)
+  const winner = racers.find(r => r.id === winnerId) ?? racers[0]
   const betRacer = bet ? racers.find(r => r.id === bet.racerId) : null
   const won      = bet?.racerId === winnerId
 
@@ -266,6 +279,7 @@ export default function Gambling() {
 
   const raceData = useRef(null)
   const tickRef  = useRef(0)
+  const betRef   = useRef(null)
 
   useEffect(() => {
     if (phase !== 'betting') return
@@ -280,10 +294,10 @@ export default function Gambling() {
     const interval = setInterval(() => {
       tickRef.current++
       const snap = raceData.current.snapshots[tickRef.current - 1]
-      setPositions({ ...snap })
+      if (snap) setPositions({ ...snap })
       if (tickRef.current >= TICKS) {
         clearInterval(interval)
-        finishRace(raceData.current.winnerId)
+        finishRace(raceData.current.winnerId, betRef.current)
       }
     }, TICK_MS)
     return () => clearInterval(interval)
@@ -296,15 +310,15 @@ export default function Gambling() {
     setPhase('racing')
   }
 
-  function finishRace(wId) {
+  function finishRace(wId, currentBet) {
     setWinnerId(wId)
-    if (bet) {
-      if (bet.racerId === wId) {
-        const p = calcPayout(bet.amount, odds[wId])
+    if (currentBet) {
+      if (currentBet.racerId === wId) {
+        const p = calcPayout(currentBet.amount, odds[wId])
         setPayout(p)
-        setBalance(b => b - bet.amount + p)
+        setBalance(b => b - currentBet.amount + p)
       } else {
-        setBalance(b => b - bet.amount)
+        setBalance(b => b - currentBet.amount)
       }
     }
     setPhase('results')
@@ -313,6 +327,7 @@ export default function Gambling() {
 
   function handleNextRace() {
     setBet(null)
+    betRef.current = null
     setPayout(0)
     setWinnerId(null)
     setOdds(generateOdds(RACERS))
@@ -336,7 +351,7 @@ export default function Gambling() {
         {phase === 'betting' && (
           <BettingPhase
             racers={RACERS} odds={odds} balance={balance}
-            onPlaceBet={(id, amt) => setBet({ racerId: id, amount: amt })}
+            onPlaceBet={(id, amt) => { const b = { racerId: id, amount: amt }; setBet(b); betRef.current = b; }}
             timeLeft={timeLeft} existingBet={bet}
           />
         )}
