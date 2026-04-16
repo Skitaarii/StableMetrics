@@ -3,6 +3,7 @@ import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import { getTrainerById } from '../data/trainers'
+import { useEffect, useState } from 'react'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -13,7 +14,27 @@ const NAV_LINKS = [
 
 export default function TrainerProfile() {
   const { id } = useParams()
-  const trainer = getTrainerById(id)
+
+  const [trainer, setTrainer] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`http://localhost:3000/api/trainers/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setTrainer(data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setLoading(false)
+      })
+  }, [id])
+
+  if (loading) {
+    return <p>Loading...</p>
+  }
+
 
   if (!trainer) {
     return (

@@ -7,3 +7,10 @@ npm run dev
 http://localhost:5173/
 
 
+to run server:
+
+npm init -y
+
+npm install express cors
+
+node index.js
