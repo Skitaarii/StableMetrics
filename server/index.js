@@ -3,6 +3,7 @@ const cors = require('cors');
 const { graphqlHTTP } = require('express-graphql');
 const { buildSchema } = require('graphql');
 
+
 const app = express();
 const PORT = 3000;
 
@@ -127,36 +128,11 @@ app.get('/hello', (req, res) => {
   res.send('Hello World niba');
 });
 
-app.get('/api/trainers/:id', (req, res) => {
-  const { id } = req.params;
-
-  console.log('route /api/trainers/:'+String(id));
-
-  res.json({
-    id: id,
-    name: id,
-    trainerId: '783 492 014 067',
-    rank: 'A3',
-    comment: 'Wh-why am I crying ? I had so mvch fvn ....',
-    followers: 142,
-    totalTrained: 38,
-    highestScore: 12000,
-    team: [
-      { uma: 'Tokai Teio', scenario: 'Unity Cup', score: 11000 },
-      { uma: 'Smart Falcon', scenario: 'Unity Cup', score: 12000 },
-    ],
-    supportSetup: [
-      'Oguri Cap [Speed]',
-      'Symboli Rudolf [Speed]',
-      'Daiwa Scarlet [Stamina]',
-      'Vodka [Power]',
-      'Gold Ship [Guts]',
-      'Mejiro McQueen [Friend]',
-    ],
-  });
-});
-
-
+app.use('/graphql', graphqlHTTP({
+  schema: schema,
+  rootValue: root,
+  graphiql: true
+}))
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);

@@ -4,6 +4,8 @@ import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import { getTrainerById } from '../data/trainers'
 import { useEffect, useState } from 'react'
+import { gql } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -12,29 +14,37 @@ const NAV_LINKS = [
   { to: '/trainers', label: 'Browse trainers' },
 ]
 
+const GET_TRAINER = gql`
+  query GetTrainer($id: ID!) {
+    trainer(id: $id) {
+      name
+      trainerId
+      comment
+      rank
+      followers
+      totalTrained
+      highestScore
+      team {
+        uma
+        scenario
+        score
+      }
+      supportSetup
+    }
+  }
+`
+
 export default function TrainerProfile() {
   const { id } = useParams()
 
-  const [trainer, setTrainer] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { data, loading, error } = useQuery(GET_TRAINER, {
+    variables: { id }
+  })
 
-  useEffect(() => {
-    fetch(`http://localhost:3000/api/trainers/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setTrainer(data)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-      })
-  }, [id])
+  if (loading) return <p>Loading...</p>
+  if (error) return <p>Error loading trainer</p>
 
-  if (loading) {
-    return <p>Loading...</p>
-  }
-
+  const trainer = data?.trainer
 
   if (!trainer) {
     return (
