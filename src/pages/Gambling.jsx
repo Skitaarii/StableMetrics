@@ -241,7 +241,7 @@ function ResultsPhase({ racers, winnerId, bet, payout, balance, odds, onNextRace
           <p className="g-result-detail">
             {won
               ? `${bet.amount} × ${odds[bet.racerId]} = ${payout.toLocaleString()} returned`
-              : `${betRacer?.name} didn't place`}
+              : `${betRacer?.name} didn't place first`}
           </p>
           <p className="g-result-balance">Balance: <strong>{balance.toLocaleString()}</strong> coins</p>
         </div>
