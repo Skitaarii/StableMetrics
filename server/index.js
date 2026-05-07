@@ -40,7 +40,7 @@ const trainers = [
     totalTrained: 22,
     highestScore: 10000,
     team: [
-      { uma: 'Mejiro Ardan', scenario: 'Make A New Track (soon, trust)', score: 10000 },
+      { uma: 'Mejiro Ardan', scenario: 'Make A New Track', score: 10000 },
     ],
     supportSetup: [
       'First-Rate Plan [King Halo] [SR] [Speed]',
