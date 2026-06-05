@@ -1,7 +1,22 @@
-// Central data file for all trainers.
-// Add or edit trainers here.
+require('dotenv').config();
+const mongoose = require('mongoose');
 
-export const TRAINERS = [
+const trainerSchema = new mongoose.Schema({
+  id: String,
+  name: String,
+  trainerId: String,
+  rank: String,
+  comment: String,
+  followers: Number,
+  totalTrained: Number,
+  highestScore: Number,
+  team: [{ uma: String, scenario: String, score: Number }],
+  supportSetup: [String],
+});
+
+const Trainer = mongoose.model('Trainer', trainerSchema);
+
+const TRAINERS = [
   {
     id: 'neb5384',
     name: 'Neb5384',
@@ -81,8 +96,23 @@ export const TRAINERS = [
     team: [],
     supportSetup: [],
   },
-]
+];
 
-export function getTrainerById(id) {
-  return TRAINERS.find((t) => t.id === id) ?? null
+async function seed() {
+  await mongoose.connect(process.env.MONGODB_URI);
+  console.log('Connected to MongoDB');
+
+  await Trainer.deleteMany({});
+  console.log('Cleared existing trainers');
+
+  await Trainer.insertMany(TRAINERS);
+  console.log(`Seeded ${TRAINERS.length} trainers`);
+
+  await mongoose.disconnect();
+  console.log('Done!');
 }
+
+seed().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

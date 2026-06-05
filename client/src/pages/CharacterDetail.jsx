@@ -1,9 +1,9 @@
 import { useParams, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 import StatBar from '../components/StatBar'
-import { getCharacterById } from '../data/characters'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home page' },
@@ -12,7 +12,25 @@ const NAV_LINKS = [
 
 export default function CharacterDetail() {
   const { id } = useParams()
-  const character = getCharacterById(id)
+  const [character, setCharacter] = useState(null)
+
+  useEffect(() => {
+    fetch('http://localhost:4000/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `{ character(id: "${id}") {
+          id name title rarity terrain lengths runningStyle
+          image videoId lore horseBackground
+          stats { speed stamina power guts wit }
+          careerRecord { totalRaces wins winRate gradeIWins majorTitles }
+          raceHistory { date race distance position }
+        }}`
+      }),
+    })
+      .then(r => r.json())
+      .then(data => setCharacter(data.data.character))
+  }, [id])
 
   if (!character) {
     return (
@@ -21,8 +39,7 @@ export default function CharacterDetail() {
         <Nav links={NAV_LINKS} />
         <main>
           <p style={{ textAlign: 'center', marginTop: '2rem' }}>
-            Character not found.{' '}
-            <Link to="/characters">Back to list</Link>
+            Loading... <Link to="/characters">Back to list</Link>
           </p>
         </main>
         <Footer />
@@ -35,7 +52,6 @@ export default function CharacterDetail() {
       <Header title="CHARACTER" />
       <Nav links={NAV_LINKS} />
       <main className="profile-section">
-        {/* Intro video */}
         <div className="video-wrapper">
           <iframe
             src={`https://www.youtube-nocookie.com/embed/${character.videoId}?autoplay=1&mute=1&loop=1&playlist=${character.videoId}&modestbranding=1&rel=0`}
@@ -44,34 +60,18 @@ export default function CharacterDetail() {
             allowFullScreen
           />
         </div>
-
-        {/* Profile summary */}
         <section>
           <div className="profile-summary">
             <h2 className="character-name">{character.name}</h2>
             <p className="character-title">{character.title}</p>
             <div className="quick-stats">
-              <div>
-                <span className="label">Rarity</span>
-                <span className="value">{character.rarity}</span>
-              </div>
-              <div>
-                <span className="label">Terrain</span>
-                <span className="value">{character.terrain}</span>
-              </div>
-              <div>
-                <span className="label">Preferred Lengths</span>
-                <span className="value">{character.lengths}</span>
-              </div>
-              <div>
-                <span className="label">Running Style</span>
-                <span className="value">{character.runningStyle}</span>
-              </div>
+              <div><span className="label">Rarity</span><span className="value">{character.rarity}</span></div>
+              <div><span className="label">Terrain</span><span className="value">{character.terrain}</span></div>
+              <div><span className="label">Preferred Lengths</span><span className="value">{character.lengths}</span></div>
+              <div><span className="label">Running Style</span><span className="value">{character.runningStyle}</span></div>
             </div>
           </div>
         </section>
-
-        {/* Uma Musume profile */}
         <section className="uma-section">
           <h3>Uma Musume Profile</h3>
           <article>
@@ -89,8 +89,6 @@ export default function CharacterDetail() {
             </ul>
           </article>
         </section>
-
-        {/* Race horse profile */}
         <section className="horse-section">
           <h3>Race Horse Profile</h3>
           <article>
@@ -111,12 +109,7 @@ export default function CharacterDetail() {
             <h4>Race History</h4>
             <table>
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Race</th>
-                  <th>Distance</th>
-                  <th>Position</th>
-                </tr>
+                <tr><th>Date</th><th>Race</th><th>Distance</th><th>Position</th></tr>
               </thead>
               <tbody>
                 {character.raceHistory.map((race, i) => (

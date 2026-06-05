@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
-import { TRAINERS } from '../data/trainers'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -11,6 +11,19 @@ const NAV_LINKS = [
 ]
 
 export default function TrainerList() {
+  const [trainers, setTrainers] = useState([])
+
+  useEffect(() => {
+    fetch('http://localhost:4000/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: `{ trainers { id name trainerId rank comment } }` }),
+    })
+      .then(r => r.json())
+      .then(data => setTrainers(data.data.trainers))
+      .catch(err => console.error('FETCH ERROR:', err))
+  }, [])
+
   return (
     <>
       <Header title="STABLEMETRICS" />
@@ -21,9 +34,8 @@ export default function TrainerList() {
           <p style={{ textAlign: 'center', marginBottom: '2rem' }}>
             Browse trainers by ID and view their performance metrics.
           </p>
-
           <div className="trainer-grid">
-            {TRAINERS.map((trainer) => (
+            {trainers.map((trainer) => (
               <div className="trainer-card" key={trainer.id}>
                 <h3>{trainer.name}</h3>
                 <p>ID: {trainer.trainerId}</p>

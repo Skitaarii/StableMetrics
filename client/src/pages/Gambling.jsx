@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
+import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 
 
@@ -22,8 +23,7 @@ const RACERS = [
 ]
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home' },
-  { to: '/characters', label: 'Characters' },
+  { to: '/', label: 'Home page' },
 ]
 
 const QUICK_AMOUNTS = [50, 100, 250, 500]
@@ -340,13 +340,7 @@ export default function Gambling() {
   return (
     <>
       <Header title="STABLEMETRICS RACING" />
-      <nav aria-label="navigation-principale">
-        <ul>
-          {NAV_LINKS.map(l => (
-            <li key={l.to}><Link to={l.to}>{l.label}</Link></li>
-          ))}
-        </ul>
-      </nav>
+      <Nav links={NAV_LINKS} />
       <main className="g-main">
         {phase === 'betting' && (
           <BettingPhase

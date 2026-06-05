@@ -6,6 +6,9 @@ import ScoreCalculator from './pages/ScoreCalculator'
 import TrainerList from './pages/TrainerList'
 import TrainerProfile from './pages/TrainerProfile'
 import Gambling from './pages/Gambling'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Terms from './pages/Terms'
 
 export default function App() {
   return (
@@ -17,6 +20,9 @@ export default function App() {
       <Route path="/trainers" element={<TrainerList />} />
       <Route path="/trainers/:id" element={<TrainerProfile />} />
       <Route path="/gambling" element={<Gambling />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/terms" element={<Terms />} />
     </Routes>
   )
 }

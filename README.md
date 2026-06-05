@@ -7,7 +7,7 @@ npm run dev
 http://localhost:5173/
 
 
-to run server:
+then to run server:
 
 npm install 
 

@@ -1,16 +1,29 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
-import { CHARACTERS } from '../data/characters'
 
 const NAV_LINKS = [{ to: '/', label: 'Home page' }]
 
 export default function Characters() {
+  const [characters, setCharacters] = useState([])
   const [search, setSearch] = useState('')
 
-  const filtered = CHARACTERS.filter((c) =>
+  useEffect(() => {
+    fetch('http://localhost:4000/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: `{ characters { id name image } }` }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        setCharacters(data.data.characters)
+      })
+      .catch(err => console.error('FETCH ERROR:', err))
+  }, [])
+
+  const filtered = characters.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   )
 
