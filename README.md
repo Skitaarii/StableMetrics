@@ -9,8 +9,6 @@ http://localhost:5173/
 
 to run server:
 
-npm init -y
-
-npm install express cors
+npm install 
 
 node index.js
