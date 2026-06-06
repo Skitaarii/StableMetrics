@@ -10,9 +10,10 @@ import { AuthProvider } from './context/AuthContext'
 
 const client = new ApolloClient({
   link: new HttpLink({
-    uri:         'http://localhost:4000/graphql',
+    uri: import.meta.env.VITE_GRAPHQL_URL,
     credentials: 'include',   // envoie le cookie HttpOnly avec chaque requête Apollo
   }),
+  link: new HttpLink({ uri: import.meta.env.VITE_GRAPHQL_URL }),
   cache: new InMemoryCache(),
 })
 

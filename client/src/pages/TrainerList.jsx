@@ -16,7 +16,7 @@ export default function TrainerList() {
   const { user } = useAuth()
 
   useEffect(() => {
-    fetch('http://localhost:4000/graphql', {
+    fetch(import.meta.env.VITE_GRAPHQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: `{ trainers { id name trainerId rank comment } }` }),

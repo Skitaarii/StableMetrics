@@ -10,6 +10,12 @@ const { Strategy: LocalStrategy } = require('passport-local');
 const { Strategy: JwtStrategy   } = require('passport-jwt');
 const { graphqlHTTP } = require('express-graphql');
 const { buildSchema } = require('graphql');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import { graphqlHTTP } from 'express-graphql';
+import { buildSchema } from 'graphql';
 
 
 // Mongoose Models ---------------------
