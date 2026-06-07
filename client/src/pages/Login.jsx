@@ -18,7 +18,7 @@ export default function Login() {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!email || !password) return setError('Veuillez remplir tous les champs')
+    if (!email || !password) return setError('Please fill in all fields')
     setLoading(true)
     try {
       await login(email, password)
@@ -88,7 +88,7 @@ export default function Login() {
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Connexion…' : 'Sign in'}
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
 
             <div className="login-divider"><span>or</span></div>

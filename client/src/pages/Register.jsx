@@ -20,9 +20,9 @@ export default function Register() {
 
   const handleSubmit = async () => {
     setError(null)
-    if (!email || !password || !confirm) return setError('Veuillez remplir tous les champs')
-    if (password !== confirm)            return setError('Les mots de passe ne correspondent pas')
-    if (password.length < 6)             return setError('Mot de passe trop court (6 caractères min)')
+    if (!email || !password || !confirm) return setError('Please fill in all fields')
+    if (password !== confirm)            return setError('Passwords do not match')
+    if (password.length < 6)             return setError('Password too short (6 characters min)')
     if (!agreed)                         return setError('Vous devez accepter les conditions d\'utilisation')
 
     setLoading(true)
@@ -104,7 +104,7 @@ export default function Register() {
               onClick={handleSubmit}
               disabled={loading}
             >
-              {loading ? 'Création…' : 'Create Account'}
+              {loading ? 'Creating…' : 'Create Account'}
             </button>
 
             <div className="register-divider"><span>or</span></div>

@@ -148,6 +148,8 @@ authRouter.post('/register', async (req, res) => {
     issueTokenCookie(res, trainer);
     res.status(201).json({ message: 'Account created', email: trainer.email });
   } catch (err) {
+    if (err.code === 11000)
+      return res.status(409).json({ error: 'This email is already in use' });
     res.status(500).json({ error: 'Server error' });
   }
 });
