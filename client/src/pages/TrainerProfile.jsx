@@ -25,7 +25,7 @@ const GET_TRAINER = gql`
 
 export default function TrainerProfile() {
   const { id } = useParams()
-  const { data, loading, error } = useQuery(GET_TRAINER, { variables: { id } })
+  const { data, loading, error } = useQuery(GET_TRAINER, { variables: { id }, fetchPolicy: 'network-only' })
 
   if (loading) return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Loading…</p>
   if (error)   return <p style={{ textAlign: 'center', marginTop: '2rem' }}>Error loading trainer</p>
