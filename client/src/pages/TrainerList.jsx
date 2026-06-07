@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
+import { useAuth } from '../context/AuthContext'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -12,6 +13,7 @@ const NAV_LINKS = [
 
 export default function TrainerList() {
   const [trainers, setTrainers] = useState([])
+  const { user } = useAuth()
 
   useEffect(() => {
     fetch('http://localhost:4000/graphql', {
@@ -31,9 +33,19 @@ export default function TrainerList() {
       <main>
         <section>
           <h2>Trainer Directory</h2>
-          <p style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <p style={{ textAlign: 'center', marginBottom: '1rem' }}>
             Browse trainers by ID and view their performance metrics.
           </p>
+
+          {user && !user.hasProfile && (
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <p style={{ color: '#888', marginBottom: '0.5rem' }}>You don't have a trainer profile yet.</p>
+              <Link to="/my-profile" className="primary-btn" style={{ display: 'inline-block' }}>
+                + Create my profile
+              </Link>
+            </div>
+          )}
+
           <div className="trainer-grid">
             {trainers.map((trainer) => (
               <div className="trainer-card" key={trainer.id}>

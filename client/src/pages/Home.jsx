@@ -18,7 +18,7 @@ export default function Home() {
         <section className="home-actions">
           <h2>Trainer Hub</h2>
           <div className="home-buttons">
-            <Link to="/trainers/neb5384" className="primary-btn">
+            <Link to="/my-profile" className="primary-btn">
               My trainer profile
             </Link>
             <Link to="/trainers" className="secondary-btn">
