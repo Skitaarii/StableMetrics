@@ -35,7 +35,7 @@ export default function App() {
       <Route path="/characters/:id"   element={<CharacterDetail />} />
       <Route path="/score-calculator" element={<ScoreCalculator />} />
       <Route path="/trainers"         element={<TrainerList />} />
-      <Route path="/trainers/:id"     element={<ProtectedRoute><TrainerProfile /></ProtectedRoute>} />
+      <Route path="/trainers/:id"     element={<TrainerProfile />} />
       <Route path="/gambling"         element={<Gambling />} />
       <Route path="/terms"            element={<Terms />} />
 
