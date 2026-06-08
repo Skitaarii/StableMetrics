@@ -14,8 +14,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import { graphqlHTTP } from 'express-graphql';
-import { buildSchema } from 'graphql';
+import { ApolloServer } from '@apollo/server';
+import { expressMiddleware } from '@as-integrations/express5';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+// --- Mongoose Models ----------------------------------------------------------
 
 
 // Mongoose Models ---------------------
@@ -33,13 +37,16 @@ const trainerSchema = new mongoose.Schema({
   totalTrained: { type: Number, default: 0 },
   highestScore: { type: Number, default: 0 },
   team:         [{ uma: String, scenario: String, score: Number }],
+const trainerSchema = new mongoose.Schema({
+  id: String, name: String, trainerId: String, rank: String, comment: String,
+  followers: Number, totalTrained: Number, highestScore: Number,
+  team: [{ uma: String, scenario: String, score: Number }],
   supportSetup: [String],
 }, { timestamps: true });
 
 const characterSchema = new mongoose.Schema({
-  id: String, name: String, title: String, rarity: String,
-  terrain: String, lengths: String, runningStyle: String,
-  image: String, videoId: String, lore: String,
+  id: String, name: String, title: String, rarity: String, terrain: String,
+  lengths: String, runningStyle: String, image: String, videoId: String, lore: String,
   stats: { speed: Number, stamina: Number, power: Number, guts: Number, wit: Number },
   horseBackground: String,
   careerRecord: {
@@ -52,158 +59,15 @@ const characterSchema = new mongoose.Schema({
 const Trainer   = mongoose.model('Trainer',   trainerSchema);
 const Character = mongoose.model('Character', characterSchema);
 
+// --- GraphQL ------------------------------------------------------------------
 
-// Passport Local Strategy (email + password) ---------------------
-
-passport.use(new LocalStrategy(
-  { usernameField: 'email', passwordField: 'password' },
-  async (email, password, done) => {
-    try {
-      const trainer = await Trainer.findOne({ email });
-      if (!trainer) return done(null, false, { message: 'Email not found' });
-
-      const valid = await bcrypt.compare(password, trainer.passwordHash);
-      if (!valid) return done(null, false, { message: 'Incorrect password' });
-
-      return done(null, trainer);
-    } catch (err) {
-      return done(err);
-    }
-  }
-));
-
-
-// Passport JWT Strategy (cookie HttpOnly) ---------------------
-
-const cookieExtractor = (req) => req?.cookies?.token ?? null;
-
-passport.use(new JwtStrategy(
-  {
-    jwtFromRequest: cookieExtractor,
-    secretOrKey:    process.env.JWT_SECRET,
-  },
-  async (payload, done) => {
-    try {
-      const trainer = await Trainer.findById(payload.sub);
-      if (!trainer) return done(null, false);
-      return done(null, trainer);
-    } catch (err) {
-      return done(err);
-    }
-  }
-));
-
-
-// Auth middleware ---------------------
-
-function requireAuth(req, res, next) {
-  passport.authenticate('jwt', { session: false }, (err, trainer) => {
-    if (err)      return next(err);
-    if (!trainer) return res.status(401).json({ error: 'Not authenticated' });
-    req.trainer = trainer;
-    next();
-  })(req, res, next);
-}
-
-function optionalAuth(req, res, next) {
-  passport.authenticate('jwt', { session: false }, (err, trainer) => {
-    if (trainer) req.trainer = trainer;
-    next();
-  })(req, res, next);
-}
-
-
-// Cookie helper ---------------------
-
-function issueTokenCookie(res, trainer) {
-  const token = jwt.sign(
-    { sub: trainer._id, email: trainer.email },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
-  res.cookie('token', token, {
-    httpOnly: true,
-    secure:   process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge:   7 * 24 * 60 * 60 * 1000,
-  });
-  return token;
-}
-
-
-// Auth Routes ---------------------
-
-const authRouter = express.Router();
-
-authRouter.post('/register', async (req, res) => {
-  const { email, password } = req.body;
-
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email and password are required' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'Password too short (6 characters min)' });
-
-  try {
-    const exists = await Trainer.findOne({ email });
-    if (exists)
-      return res.status(409).json({ error: 'This email is already in use' });
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const trainer = await Trainer.create({ email, passwordHash });
-
-    issueTokenCookie(res, trainer);
-    res.status(201).json({ message: 'Account created', email: trainer.email });
-  } catch (err) {
-    if (err.code === 11000)
-      return res.status(409).json({ error: 'This email is already in use' });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-authRouter.post('/login', (req, res, next) => {
-  passport.authenticate('local', { session: false }, (err, trainer, info) => {
-    if (err)      return next(err);
-    if (!trainer) return res.status(401).json({ error: info?.message ?? 'Invalid credentials' });
-
-    issueTokenCookie(res, trainer);
-    res.json({ message: 'Logged in', email: trainer.email });
-  })(req, res, next);
-});
-
-authRouter.post('/logout', (req, res) => {
-  res.clearCookie('token', { httpOnly: true, sameSite: 'lax' });
-  res.json({ message: 'Logged out' });
-});
-
-authRouter.get('/me', requireAuth, (req, res) => {
-  res.json({
-    email:        req.trainer.email,
-    name:         req.trainer.name,
-    trainerId:    req.trainer.trainerId,
-    hasProfile:   !!req.trainer.name,
-    id:           req.trainer._id,
-  });
-});
-
-
-// GraphQL Schema -------------------------
-
-const schema = buildSchema(`
+const typeDefs = `
   type Trainer {
-    id: ID!
-    email: String
-    name: String
-    trainerId: String
-    comment: String
-    rank: String
-    followers: Int
-    totalTrained: Int
-    highestScore: Int
-    team: [TeamEntry]
-    supportSetup: [String]
+    id: ID! name: String trainerId: String comment: String rank: String
+    followers: Int totalTrained: Int highestScore: Int
+    team: [TeamEntry] supportSetup: [String]
   }
   type TeamEntry { uma: String, scenario: String, score: Int }
-
   type Stats { speed: Int, stamina: Int, power: Int, guts: Int, wit: Int }
   type CareerRecord {
     totalRaces: Int, wins: Int, winRate: String,
@@ -211,85 +75,170 @@ const schema = buildSchema(`
   }
   type RaceEntry { date: String, race: String, distance: String, position: String }
   type Character {
-    id: ID!
-    name: String, title: String, rarity: String
-    terrain: String, lengths: String, runningStyle: String
-    image: String, videoId: String, lore: String
-    stats: Stats
-    horseBackground: String
-    careerRecord: CareerRecord
-    raceHistory: [RaceEntry]
+    id: ID! name: String title: String rarity: String
+    terrain: String lengths: String runningStyle: String
+    image: String videoId: String lore: String
+    stats: Stats horseBackground: String
+    careerRecord: CareerRecord raceHistory: [RaceEntry]
   }
-
-  input TeamEntryInput { uma: String, scenario: String, score: Int }
-
   type Query {
     trainer(id: ID!): Trainer
     trainers: [Trainer]
     character(id: ID!): Character
     characters: [Character]
   }
+`;
 
-  type Mutation {
-    updateProfile(
-      name: String
-      trainerId: String
-      comment: String
-      rank: String
-      followers: Int
-      totalTrained: Int
-      highestScore: Int
-      team: [TeamEntryInput]
-      supportSetup: [String]
-    ): Trainer
+const resolvers = {
+  Query: {
+    trainer:    (_, { id }) => Trainer.findOne({ id }),
+    trainers:   ()          => Trainer.find(),
+    character:  (_, { id }) => Character.findOne({ id }),
+    characters: ()          => Character.find(),
   }
-`);
+};
 
-function buildRoot(req) {
-  return {
-    // Only expose trainers that have set up a profile (have a name)
-    trainer:    ({ id }) => Trainer.findById(id).then(t => (t?.name ? t : null)),
-    trainers:   ()       => Trainer.find({ name: { $ne: null } }),
-    character:  ({ id }) => Character.findOne({ id }),
-    characters: ()       => Character.find(),
+// --- Race Logic ---------------------------------------------------------------
 
-    // Create or update the logged-in trainer's profile
-    updateProfile: async ({ ...fields }) => {
-      if (!req.trainer) throw new Error('Not authenticated');
+const RACERS = [
+  { id: 'suzuka',  name: 'Silence Suzuka',  color: '#44fe2f' },
+  { id: 'special', name: 'Special Week',    color: '#ff52e8' },
+  { id: 'tokai',   name: 'Tokai Teio',      color: '#66baff' },
+  { id: 'mcqueen', name: 'Mejiro McQueen',  color: '#c9a8fc' },
+  { id: 'rice',    name: 'Rice Shower',     color: '#924ece' },
+  { id: 'ardan',   name: 'Mejiro Ardan',    color: '#67f1ef' },
+  { id: 'creek',   name: 'Super Creek',     color: '#91e0ff' },
+  { id: 'rudolf',  name: 'Symboli Rudolf',  color: '#209339' },
+  { id: 'oguri',   name: 'Oguri Cap',       color: '#e4e4e4' },
+];
 
-      Object.assign(req.trainer, fields);
-      await req.trainer.save();
-      return req.trainer;
-    },
-  };
+const BETTING_DURATION = 15;
+const RACE_DURATION    = 8000;
+const TICK_MS          = 100;
+const TICKS            = RACE_DURATION / TICK_MS;
+
+function generateOdds(speeds) {
+  // Use the racer speeds to derive weights — faster = more favored = lower odds
+  const weights = RACERS.map(r => speeds[r.id])
+  const total   = weights.reduce((a, b) => a + b, 0)
+  return Object.fromEntries(
+    RACERS.map((r, i) => [r.id, +(total / weights[i] * 0.85).toFixed(1)])
+  )
 }
 
+function simulateRace() {
+  // Speeds weighted toward the middle — less extreme variation
+  const speeds = Object.fromEntries(
+    RACERS.map(r => [r.id, Math.random() * 0.3 + 0.85])
+  )
 
-// App ------------------------------
+  const odds      = generateOdds(speeds)
+  const snapshots = []
+  const positions = Object.fromEntries(RACERS.map(r => [r.id, 0]))
+  const finishTick = {}
 
-const app = express();
+  for (let t = 0; t < TICKS; t++) {
+    RACERS.forEach(r => {
+      if (finishTick[r.id] !== undefined) return
+      const surge = Math.random() < 0.08 ? Math.random() * 2 : 0
+      positions[r.id] += speeds[r.id] * (Math.random() * 1.2 + 0.6) + surge
+      if (positions[r.id] >= 100) { finishTick[r.id] = t; positions[r.id] = 100 }
+    })
+    snapshots.push({ ...positions })
+  }
 
-app.use(cors({
-  origin:      'http://localhost:5173',
-  credentials: true,
-}));
+  const winner = RACERS
+    .filter(r => finishTick[r.id] !== undefined)
+    .sort((a, b) => finishTick[a.id] - finishTick[b.id])[0]
+
+  return { snapshots, winnerId: winner?.id ?? RACERS[0].id, odds }
+}
+
+// --- App + HTTP + Socket.io ---------------------------------------------------
+
+const app        = express();
+const httpServer = createServer(app);
+const io         = new Server(httpServer, { cors: { origin: '*' } });
+
+app.use(cors());
 app.use(express.json());
-app.use(cookieParser());
-app.use(passport.initialize());
 
-app.use('/auth', authRouter);
+// --- Race State Machine -------------------------------------------------------
 
-app.use('/graphql', optionalAuth, (req, res) => {
-  graphqlHTTP({
-    schema,
-    rootValue: buildRoot(req),
-    graphiql:  true,
-  })(req, res);
+let raceState = {
+  phase:     'betting',
+  odds:      generateOdds(Object.fromEntries(RACERS.map(r => [r.id, Math.random() * 0.3 + 0.85]))),
+  timeLeft:  BETTING_DURATION,
+  positions: Object.fromEntries(RACERS.map(r => [r.id, 0])),
+  winnerId:  null,
+};
+
+function broadcastState() { io.emit('race:state', raceState); }
+function emitState(socket) { socket.emit('race:state', raceState); }
+
+function startBettingPhase(nextOdds) {
+  raceState = {
+    phase:     'betting',
+    odds:      nextOdds ?? generateOdds(Object.fromEntries(RACERS.map(r => [r.id, Math.random() * 0.3 + 0.85]))),
+    timeLeft:  BETTING_DURATION,
+    positions: Object.fromEntries(RACERS.map(r => [r.id, 0])),
+    winnerId:  null,
+  }
+  broadcastState()
+
+  const countdown = setInterval(() => {
+    raceState.timeLeft--
+    broadcastState()
+    if (raceState.timeLeft <= 0) { clearInterval(countdown); startRacingPhase() }
+  }, 1000)
+}
+
+function startRacingPhase() {
+  const { snapshots, winnerId, odds } = simulateRace()
+  raceState.phase = 'racing'
+  broadcastState()
+
+  let tick = 0
+  const interval = setInterval(() => {
+    const snap = snapshots[tick]
+    if (snap) { raceState.positions = snap; broadcastState() }
+    tick++
+    if (tick >= TICKS) { clearInterval(interval); startResultsPhase(winnerId, odds) }
+  }, TICK_MS)
+}
+
+function startResultsPhase(winnerId, odds) {
+  raceState.phase    = 'results'
+  raceState.winnerId = winnerId
+  broadcastState()
+  // Pre-generate next race odds and pass them into the next betting phase
+  const { odds: nextOdds } = simulateRace()
+  setTimeout(() => startBettingPhase(nextOdds), 5000)
+}
+
+// --- Socket.io Connections ----------------------------------------------------
+
+io.on('connection', socket => {
+  console.log('Client connected:', socket.id);
+  emitState(socket);
+  socket.on('disconnect', () => console.log('Client disconnected:', socket.id));
 });
+
+// --- Apollo + Start -----------------------------------------------------------
+
+const apolloServer = new ApolloServer({ typeDefs, resolvers });
+await apolloServer.start();
+
+app.use('/graphql', expressMiddleware(apolloServer, {
+  context: async ({ req }) => ({ req })
+}));
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('MongoDB connected');
-    app.listen(4000, () => console.log('Server on http://localhost:4000'));
+    httpServer.listen(4000, () => {
+      console.log('Server on http://localhost:4000');
+      startBettingPhase();
+    });
   })
   .catch(err => console.error('DB error:', err));

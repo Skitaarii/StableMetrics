@@ -1,101 +1,51 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { io } from 'socket.io-client'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 
+// --- Constants ----------------------------------------------------------------
 
+const SOCKET_URL       = 'http://localhost:4000'
 const STARTING_BALANCE = 1000
 const BETTING_DURATION = 15
-const RACE_DURATION    = 8000
-const TICK_MS          = 100
+const QUICK_AMOUNTS    = [50, 100, 250, 500]
 
 const RACERS = [
-  { id: 'suzuka',  name: 'Silence Suzuka', color: '#44fe2f', image: 'https://umamusume.com/_app/immutable/assets/gameplay_silencesuzuka.IU_hfHC5.png' },
-  { id: 'special', name: 'Special Week',   color: '#ff52e8', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'tokai',   name: 'Tokai Teio',     color: '#66baff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'mcqueen', name: 'Mejiro McQueen', color: '#c9a8fc', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'rice',    name: 'Rice Shower',    color: '#924ece', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'ardan',    name: 'Mejiro Ardan',    color: '#67f1ef', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'creek',    name: 'Super Creek',    color: '#91e0ff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'rudolf',    name: 'Symboli Rudolf',    color: '#209339', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'oguri',    name: 'Oguri Cap',    color: '#e4e4e4', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'suzuka',  name: 'Silence Suzuka',  color: '#44fe2f', image: 'https://umamusume.com/_app/immutable/assets/gameplay_silencesuzuka.IU_hfHC5.png' },
+  { id: 'special', name: 'Special Week',    color: '#ff52e8', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'tokai',   name: 'Tokai Teio',      color: '#66baff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'mcqueen', name: 'Mejiro McQueen',  color: '#c9a8fc', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'rice',    name: 'Rice Shower',     color: '#924ece', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'ardan',   name: 'Mejiro Ardan',    color: '#67f1ef', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'creek',   name: 'Super Creek',     color: '#91e0ff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'rudolf',  name: 'Symboli Rudolf',  color: '#209339', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
+  { id: 'oguri',   name: 'Oguri Cap',       color: '#e4e4e4', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
 ]
 
-const NAV_LINKS = [
-  { to: '/', label: 'Home page' },
-]
+const NAV_LINKS = [{ to: '/', label: 'Home page' }]
 
-const QUICK_AMOUNTS = [50, 100, 250, 500]
+function calcPayout(amount, odds) { return Math.floor(amount * odds) }
 
+// --- Betting Phase -----------------------------------------------------------
 
+function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
+  const [selected, setSelected] = useState(bet?.racerId ?? null)
+  const [amount,   setAmount]   = useState(bet ? String(bet.amount) : '')
 
-
-
-function generateOdds(racers) {
-  const weights = racers.map(() => Math.random() * 8 + 1)
-  const total   = weights.reduce((a, b) => a + b, 0)
-  return Object.fromEntries(
-    racers.map((r, i) => [r.id, +(total / weights[i]).toFixed(1)])
-  )
-}
-
-function calcPayout(bet, odds) {
-  return Math.floor(bet * odds)
-}
-
-function simulateRace(racers, ticks) {
-  const speeds = Object.fromEntries(
-    racers.map(r => [r.id, Math.random() * 0.4 + 0.8])
-  )
-
-  const snapshots = []
-  const positions = Object.fromEntries(racers.map(r => [r.id, 0]))
-  const finishTick = {}
-
-  for (let t = 0; t < ticks; t++) {
-    racers.forEach(r => {
-      if (finishTick[r.id] !== undefined) return
-
-      const surge = Math.random() < 0.1 ? Math.random() * 3 : 0
-      positions[r.id] += speeds[r.id] * (Math.random() * 1.5 + 0.5) + surge
-
-      if (positions[r.id] >= 100) {
-        finishTick[r.id] = t
-        positions[r.id] = 100
-      }
-    })
-
-    snapshots.push({ ...positions })
-  }
-
-  const winner = racers
-    .filter(r => finishTick[r.id] !== undefined)
-    .sort((a, b) => finishTick[a.id] - finishTick[b.id])[0]
-
-  return { snapshots, winnerId: winner?.id ?? racers[0].id }
-}
-
-// betting
-
-function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet }) {
-  const [selected, setSelected] = useState(existingBet?.racerId ?? null)
-  const [amount,   setAmount]   = useState(existingBet ? String(existingBet.amount) : '')
+  const oddsKey = JSON.stringify(odds)
+  useEffect(() => {
+    setSelected(null)
+    setAmount('')
+  }, [oddsKey])
 
   const timerPct   = (timeLeft / BETTING_DURATION) * 100
   const timerColor = timeLeft <= 5 ? '#ff6b6b' : timeLeft <= 10 ? '#ffd166' : '#ff7eb9'
   const parsedAmt  = parseInt(amount, 10)
   const canBet     = selected && parsedAmt > 0 && parsedAmt <= balance
 
-  function handleSubmit() {
-    if (!canBet) return
-    onPlaceBet(selected, parsedAmt)
-  }
-
   return (
     <div className="g-betting-layout">
-
-      {/*Top bar*/}
       <div className="g-topbar">
         <div className="g-topbar-left">
           <span className="g-topbar-label">Time remaining</span>
@@ -110,14 +60,11 @@ function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet
         </div>
       </div>
 
-      {/*Main two-column layout*/}
       <div className="g-columns">
-
-        {/* Left: racer list */}
         <div className="g-panel">
           <h3 className="g-panel-title">Racers</h3>
           <div className="g-racer-list">
-            {racers.map(r => (
+            {RACERS.map(r => (
               <button
                 key={r.id}
                 className={`g-racer-row ${selected === r.id ? 'selected' : ''}`}
@@ -134,7 +81,6 @@ function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet
           </div>
         </div>
 
-        {/* Right: bet panel */}
         <div className="g-panel">
           <h3 className="g-panel-title">Bets</h3>
           <div className="g-bet-panel">
@@ -145,39 +91,31 @@ function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet
                   className={`g-quick-btn ${parsedAmt === v ? 'active' : ''}`}
                   onClick={() => setAmount(String(Math.min(v, balance)))}
                   disabled={v > balance}
-                >
-                  {v}
-                </button>
+                >{v}</button>
               ))}
               <button
                 className={`g-quick-btn all-in ${parsedAmt === balance ? 'active' : ''}`}
-                onClick={() => setAmount(String(balance))}>
-                ALL IN
-              </button>
+                onClick={() => setAmount(String(balance))}
+              >ALL IN</button>
             </div>
             <input
               type="number"
               className="g-custom-input"
               placeholder="Custom amount..."
-              min={1}
-              max={balance}
+              min={1} max={balance}
               value={amount}
               onChange={e => setAmount(e.target.value)}
             />
             <div className="g-current-bet">
               {selected && parsedAmt > 0
-                ? <>Betting <strong>{parsedAmt}</strong> on <strong>{racers.find(r=>r.id===selected)?.name}</strong> → potential <strong>{calcPayout(parsedAmt, odds[selected]??1).toLocaleString()}</strong></>
+                ? <>Betting <strong>{parsedAmt}</strong> on <strong>{RACERS.find(r => r.id === selected)?.name}</strong> → potential <strong>{calcPayout(parsedAmt, odds[selected] ?? 1).toLocaleString()}</strong></>
                 : <span className="g-bet-placeholder">{selected ? 'Enter an amount' : 'Select a racer first'}</span>
               }
             </div>
-            <button className="g-place-btn" onClick={handleSubmit} disabled={!canBet}>
-              {existingBet ? 'Update bet' : 'Place bet'}
+            <button className="g-place-btn" onClick={() => canBet && onPlaceBet(selected, parsedAmt)} disabled={!canBet}>
+              {bet ? 'Update bet' : 'Place bet'}
             </button>
-            {existingBet && (
-              <p className="g-bet-placed">
-                Bet placed! You can change it before the race starts.
-              </p>
-            )}
+            {bet && <p className="g-bet-placed">Bet placed! You can change it before the race starts.</p>}
           </div>
         </div>
       </div>
@@ -185,28 +123,30 @@ function BettingPhase({ racers, odds, balance, onPlaceBet, timeLeft, existingBet
   )
 }
 
-// racing
+// --- Race Phase ---------------------------------------------------------------
 
-function RacePhase({ racers, positions, bet }) {
+function RacePhase({ positions, bet }) {
   return (
     <div className="g-race-layout">
       <h2 className="g-race-title">Race in progress!</h2>
       {bet && (
         <p className="g-bet-reminder">
-          Rooting for <strong>{racers.find(r => r.id === bet.racerId)?.name}</strong>
+          Rooting for <strong>{RACERS.find(r => r.id === bet.racerId)?.name}</strong>!
         </p>
       )}
       <div className="g-track">
-        {racers.map(r => (
+        {RACERS.map(r => (
           <div key={r.id} className={`g-lane ${bet?.racerId === r.id ? 'my-pick' : ''}`}>
             <span className="g-lane-label">{r.name}</span>
             <div className="g-lane-bar">
               <div
                 className="g-lane-fill"
-                style={{ width: `${positions[r.id] ?? 0}%`, background: r.color }}
+                style={{ width: `${positions?.[r.id] ?? 0}%`, background: r.color }}
               />
-              <span className="g-lane-runner" style={{ left: `max(0px, calc(${positions[r.id] ?? 0}% - 22px))` }}>
-              </span>
+              <span
+                className="g-lane-runner"
+                style={{ left: `max(0px, calc(${positions?.[r.id] ?? 0}% - 22px))` }}
+              />
             </div>
           </div>
         ))}
@@ -215,17 +155,18 @@ function RacePhase({ racers, positions, bet }) {
   )
 }
 
-// results
+// --- Results Phase ------------------------------------------------------------
 
-function ResultsPhase({ racers, winnerId, bet, payout, balance, odds, onNextRace }) {
-  const winner = racers.find(r => r.id === winnerId) ?? racers[0]
-  const betRacer = bet ? racers.find(r => r.id === bet.racerId) : null
+function ResultsPhase({ winnerId, bet, odds, balance }) {
+  const winner   = RACERS.find(r => r.id === winnerId) ?? RACERS[0]
+  const betRacer = bet ? RACERS.find(r => r.id === bet.racerId) : null
   const won      = bet?.racerId === winnerId
+  const payout   = won ? calcPayout(bet.amount, odds?.[winnerId] ?? 1) : 0
 
   return (
     <div className="g-results-layout">
       <div className="g-winner-card" style={{ '--wc': winner.color }}>
-        <img src={winner.image} alt={winner.name} className="g-winner-img" />
+        <img src={winner.image ?? RACERS[0].image} alt={winner.name} className="g-winner-img" />
         <div>
           <p className="g-winner-label">Winner</p>
           <h2 className="g-winner-name">{winner.name}</h2>
@@ -240,7 +181,7 @@ function ResultsPhase({ racers, winnerId, bet, payout, balance, odds, onNextRace
           </p>
           <p className="g-result-detail">
             {won
-              ? `${bet.amount} × ${odds[bet.racerId]} = ${payout.toLocaleString()} returned`
+              ? `${bet.amount} × ${odds?.[bet.racerId]} = ${payout.toLocaleString()} returned`
               : `${betRacer?.name} didn't place first`}
           </p>
           <p className="g-result-balance">Balance: <strong>{balance.toLocaleString()}</strong> coins</p>
@@ -252,89 +193,88 @@ function ResultsPhase({ racers, winnerId, bet, payout, balance, odds, onNextRace
         </div>
       )}
 
-      {balance <= 0 && <p className="g-broke">You're broke</p>}
-
-      <button className="g-next-btn" onClick={onNextRace}>
-        {balance <= 0 ? 'Start over' : 'Next race'}
-      </button>
+      {balance <= 0 && <p className="g-broke">You're broke 💸</p>}
+      <p className="g-next-hint">Next race starting soon...</p>
     </div>
   )
 }
 
-
-
-// main
+// --- Main ---------------------------------------------------------------------
 
 export default function Gambling() {
-  const TICKS = Math.floor(RACE_DURATION / TICK_MS)
-
-  const [phase,     setPhase]     = useState('betting')
-  const [balance,   setBalance]   = useState(STARTING_BALANCE)
-  const [odds,      setOdds]      = useState(() => generateOdds(RACERS))
+  const [phase,     setPhase]     = useState(null)
+  const [odds,      setOdds]      = useState({})
   const [timeLeft,  setTimeLeft]  = useState(BETTING_DURATION)
-  const [bet,       setBet]       = useState(null)
-  const [positions, setPositions] = useState(Object.fromEntries(RACERS.map(r => [r.id, 0])))
+  const [positions, setPositions] = useState({})
   const [winnerId,  setWinnerId]  = useState(null)
-  const [payout,    setPayout]    = useState(0)
+  const [connected, setConnected] = useState(false)
 
-  const raceData = useRef(null)
-  const tickRef  = useRef(0)
+  const [balance, setBalance] = useState(STARTING_BALANCE)
+  const [bet,     setBet]     = useState(null)
+
   const betRef   = useRef(null)
+  const oddsRef  = useRef(null)
+  const phaseRef = useRef(null)
 
   useEffect(() => {
-    if (phase !== 'betting') return
-    if (timeLeft <= 0) { startRace(); return }
-    const t = setTimeout(() => setTimeLeft(tl => tl - 1), 1000)
-    return () => clearTimeout(t)
-  }, [phase, timeLeft])
+    const socket = io(SOCKET_URL)
 
-  useEffect(() => {
-    if (phase !== 'racing') return
-    tickRef.current = 0
-    const interval = setInterval(() => {
-      tickRef.current++
-      const snap = raceData.current.snapshots[tickRef.current - 1]
-      if (snap) setPositions({ ...snap })
-      if (tickRef.current >= TICKS) {
-        clearInterval(interval)
-        finishRace(raceData.current.winnerId, betRef.current)
+    socket.on('connect',    () => setConnected(true))
+    socket.on('disconnect', () => setConnected(false))
+
+    socket.on('race:state', state => {
+      const prevPhase = phaseRef.current
+
+      if (state.phase === 'results' && prevPhase === 'racing') {
+        const currentBet  = betRef.current
+        const currentOdds = oddsRef.current
+        if (currentBet && currentOdds) {
+          if (currentBet.racerId === state.winnerId) {
+            const p = calcPayout(currentBet.amount, currentOdds[state.winnerId])
+            setBalance(b => b - currentBet.amount + p)
+          } else {
+            setBalance(b => b - currentBet.amount)
+          }
+        }
       }
-    }, TICK_MS)
-    return () => clearInterval(interval)
-  }, [phase])
 
-  function startRace() {
-    const result = simulateRace(RACERS, TICKS)
-    raceData.current = result
-    setPositions(Object.fromEntries(RACERS.map(r => [r.id, 0])))
-    setPhase('racing')
+      if (state.phase === 'betting' && prevPhase === 'results') {
+        setBet(null)
+        betRef.current = null
+        setBalance(b => b <= 0 ? STARTING_BALANCE : b)
+      }
+
+      phaseRef.current = state.phase
+      oddsRef.current  = state.odds
+      setPhase(state.phase)
+      setOdds(state.odds)
+      setTimeLeft(state.timeLeft)
+      setPositions(state.positions)
+      setWinnerId(state.winnerId)
+    })
+
+    return () => socket.disconnect()
+  }, [])
+
+  function handlePlaceBet(racerId, amount) {
+    const b = { racerId, amount }
+    setBet(b)
+    betRef.current = b
   }
 
-  function finishRace(wId, currentBet) {
-    setWinnerId(wId)
-    if (currentBet) {
-      if (currentBet.racerId === wId) {
-        const p = calcPayout(currentBet.amount, odds[wId])
-        setPayout(p)
-        setBalance(b => b - currentBet.amount + p)
-      } else {
-        setBalance(b => b - currentBet.amount)
-      }
-    }
-    setPhase('results')
-  }
-
-
-  function handleNextRace() {
-    setBet(null)
-    betRef.current = null
-    setPayout(0)
-    setWinnerId(null)
-    setOdds(generateOdds(RACERS))
-    setTimeLeft(BETTING_DURATION)
-    setPositions(Object.fromEntries(RACERS.map(r => [r.id, 0])))
-    if (balance <= 0) setBalance(STARTING_BALANCE)
-    setPhase('betting')
+  if (!connected || !phase) {
+    return (
+      <>
+        <Header title="STABLEMETRICS RACING" />
+        <Nav links={NAV_LINKS} />
+        <main className="g-main">
+          <p style={{ textAlign: 'center', color: '#aaa', marginTop: '4rem' }}>
+            Connecting to race server...
+          </p>
+        </main>
+        <Footer />
+      </>
+    )
   }
 
   return (
@@ -344,19 +284,18 @@ export default function Gambling() {
       <main className="g-main">
         {phase === 'betting' && (
           <BettingPhase
-            racers={RACERS} odds={odds} balance={balance}
-            onPlaceBet={(id, amt) => { const b = { racerId: id, amount: amt }; setBet(b); betRef.current = b; }}
-            timeLeft={timeLeft} existingBet={bet}
+            timeLeft={timeLeft} odds={odds}
+            balance={balance} bet={bet}
+            onPlaceBet={handlePlaceBet}
           />
         )}
         {phase === 'racing' && (
-          <RacePhase racers={RACERS} positions={positions} bet={bet} />
+          <RacePhase positions={positions} bet={bet} />
         )}
         {phase === 'results' && (
           <ResultsPhase
-            racers={RACERS} winnerId={winnerId} bet={bet}
-            payout={payout} balance={balance} odds={odds}
-            onNextRace={handleNextRace}
+            winnerId={winnerId} bet={bet}
+            odds={odds} balance={balance}
           />
         )}
       </main>
