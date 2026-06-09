@@ -18,12 +18,13 @@ export default function Characters() {
     })
       .then(r => r.json())
       .then(data => {
+        console.log('GraphQL response:', JSON.stringify(data))
         setCharacters(data.data.characters)
       })
       .catch(err => console.error('FETCH ERROR:', err))
   }, [])
 
-  const filtered = characters.filter((c) =>
+  const filtered = (characters ?? []).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -56,7 +57,7 @@ export default function Characters() {
             {filtered.map((character) => (
               <article key={character.id}>
                 <Link to={`/characters/${character.id}`}>
-                  <p>{character.name}</p>
+                  <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 500 }}>{character.name}</p>
                   <img src={character.image} alt={character.name} />
                 </Link>
               </article>

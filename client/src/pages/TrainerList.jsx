@@ -8,7 +8,6 @@ import { useAuth } from '../context/AuthContext'
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/characters', label: 'Characters' },
-  { to: '/score-calculator', label: 'Score calculator' },
 ]
 
 export default function TrainerList() {
@@ -22,7 +21,10 @@ export default function TrainerList() {
       body: JSON.stringify({ query: `{ trainers { id name trainerId rank comment } }` }),
     })
       .then(r => r.json())
-      .then(data => setTrainers(data.data.trainers))
+      .then(data => {
+        console.log('Trainers response:', JSON.stringify(data))
+        setTrainers(data.data.trainers ?? [])
+      })
       .catch(err => console.error('FETCH ERROR:', err))
   }, [])
 
@@ -47,7 +49,7 @@ export default function TrainerList() {
           )}
 
           <div className="trainer-grid">
-            {trainers.map((trainer) => (
+            {trainers.filter(t => t && t.name).map((trainer) => (
               <div className="trainer-card" key={trainer.id}>
                 <h3>{trainer.name}</h3>
                 <p>ID: {trainer.trainerId}</p>

@@ -5,7 +5,6 @@ import Footer from '../components/Footer'
 
 const NAV_LINKS = [
   { to: '/characters', label: 'Characters' },
-  { to: '/score-calculator', label: 'Score calculator' },
   { to: '/gambling', label: 'Gambling' },
 ]
 

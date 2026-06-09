@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
+import { useAuth } from '../context/AuthContext'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
@@ -11,25 +12,13 @@ const STARTING_BALANCE = 1000
 const BETTING_DURATION = 15
 const QUICK_AMOUNTS    = [50, 100, 250, 500]
 
-const RACERS = [
-  { id: 'suzuka',  name: 'Silence Suzuka',  color: '#44fe2f', image: 'https://umamusume.com/_app/immutable/assets/gameplay_silencesuzuka.IU_hfHC5.png' },
-  { id: 'special', name: 'Special Week',    color: '#ff52e8', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'tokai',   name: 'Tokai Teio',      color: '#66baff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'mcqueen', name: 'Mejiro McQueen',  color: '#c9a8fc', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'rice',    name: 'Rice Shower',     color: '#924ece', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'ardan',   name: 'Mejiro Ardan',    color: '#67f1ef', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'creek',   name: 'Super Creek',     color: '#91e0ff', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'rudolf',  name: 'Symboli Rudolf',  color: '#209339', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-  { id: 'oguri',   name: 'Oguri Cap',       color: '#e4e4e4', image: 'https://umamusume.com/_app/immutable/assets/gameplay_specialweek.CtMZrUlS.png' },
-]
-
 const NAV_LINKS = [{ to: '/', label: 'Home page' }]
 
 function calcPayout(amount, odds) { return Math.floor(amount * odds) }
 
 // --- Betting Phase -----------------------------------------------------------
 
-function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
+function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet, racers }) {
   const [selected, setSelected] = useState(bet?.racerId ?? null)
   const [amount,   setAmount]   = useState(bet ? String(bet.amount) : '')
 
@@ -64,7 +53,7 @@ function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
         <div className="g-panel">
           <h3 className="g-panel-title">Racers</h3>
           <div className="g-racer-list">
-            {RACERS.map(r => (
+            {racers.map(r => (
               <button
                 key={r.id}
                 className={`g-racer-row ${selected === r.id ? 'selected' : ''}`}
@@ -75,7 +64,7 @@ function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
                   <span className="g-racer-name">{r.name}</span>
                   <span className="g-racer-odd">x{odds[r.id]}</span>
                 </div>
-                <img src={r.image} alt={r.name} className="g-racer-img" />
+                {r.image && <img src={r.image} alt={r.name} className="g-racer-img" />}
               </button>
             ))}
           </div>
@@ -108,7 +97,7 @@ function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
             />
             <div className="g-current-bet">
               {selected && parsedAmt > 0
-                ? <>Betting <strong>{parsedAmt}</strong> on <strong>{RACERS.find(r => r.id === selected)?.name}</strong> → potential <strong>{calcPayout(parsedAmt, odds[selected] ?? 1).toLocaleString()}</strong></>
+                ? <>Betting <strong>{parsedAmt}</strong> on <strong>{racers.find(r => r.id === selected)?.name}</strong> → potential <strong>{calcPayout(parsedAmt, odds[selected] ?? 1).toLocaleString()}</strong></>
                 : <span className="g-bet-placeholder">{selected ? 'Enter an amount' : 'Select a racer first'}</span>
               }
             </div>
@@ -125,48 +114,138 @@ function BettingPhase({ timeLeft, odds, balance, bet, onPlaceBet }) {
 
 // --- Race Phase ---------------------------------------------------------------
 
-function RacePhase({ positions, bet }) {
+function RacePhase({ positions, bet, racers }) {
+  const svgRef = useRef(null)
+
+  const CX = 550, CY = 260, RX_BASE = 300, RY_BASE = 160
+  const LANE_W = 18
+
+  function getOvalPoint(progress, rx, ry) {
+    const angle = (progress / 100) * Math.PI * 2 - Math.PI / 2
+    return {
+      x: CX + rx * Math.cos(angle),
+      y: CY + ry * Math.sin(angle)
+    }
+  }
+
+  useEffect(() => {
+    if (!svgRef.current || !positions) return
+    racers.forEach((r, i) => {
+      const rx = RX_BASE - i * LANE_W * 0.85
+      const ry = RY_BASE - i * LANE_W * 0.55
+      const prog = positions[r.id] ?? 0
+      const pt = getOvalPoint(prog, rx, ry)
+      const g = svgRef.current.getElementById('dot-' + r.id)
+      if (g) g.setAttribute('transform', `translate(${pt.x}, ${pt.y})`)
+    })
+  }, [positions])
+
+  const trackPaths = racers.map((r, i) => {
+    const rx = RX_BASE - i * LANE_W * 0.85
+    const ry = RY_BASE - i * LANE_W * 0.55
+    const pts = []
+    for (let t = 0; t <= 100; t += 0.5) {
+      const p = getOvalPoint(t, rx, ry)
+      pts.push(`${t === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+    }
+    pts.push('Z')
+    return { r, path: pts.join(' ') }
+  })
+
+  const dotPositions = racers.map((r, i) => {
+    const rx = RX_BASE - i * LANE_W * 0.85
+    const ry = RY_BASE - i * LANE_W * 0.55
+    const prog = positions?.[r.id] ?? 0
+    return { r, i, ...getOvalPoint(prog, rx, ry) }
+  })
+
   return (
     <div className="g-race-layout">
       <h2 className="g-race-title">Race in progress!</h2>
       {bet && (
         <p className="g-bet-reminder">
-          Rooting for <strong>{RACERS.find(r => r.id === bet.racerId)?.name}</strong>!
+          Rooting for <strong>{racers.find(r => r.id === bet.racerId)?.name}</strong>!
         </p>
       )}
-      <div className="g-track">
-        {RACERS.map(r => (
-          <div key={r.id} className={`g-lane ${bet?.racerId === r.id ? 'my-pick' : ''}`}>
-            <span className="g-lane-label">{r.name}</span>
-            <div className="g-lane-bar">
-              <div
-                className="g-lane-fill"
-                style={{ width: `${positions?.[r.id] ?? 0}%`, background: r.color }}
-              />
-              <span
-                className="g-lane-runner"
-                style={{ left: `max(0px, calc(${positions?.[r.id] ?? 0}% - 22px))` }}
-              />
-            </div>
-          </div>
+
+      <svg
+        ref={svgRef}
+        viewBox="0 0 900 500"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ width: '100%', height: 'auto' }}
+      >
+        {trackPaths.map(({ r, path }) => (
+          <path
+            key={r.id}
+            d={path}
+            fill="none"
+            stroke={r.color}
+            strokeWidth="16"
+            opacity="0.15"
+          />
         ))}
-      </div>
+
+        <line x1="550" y1="85" x2="550" y2="105" stroke="white" strokeWidth="2" opacity="0.6"/>
+        <text x="550" y="78" fontSize="10" fill="white" opacity="0.5" textAnchor="middle">START</text>
+
+        <text x="16" y="20" fontSize="12" fontWeight="500" fill="var(--color-text-secondary,#888)">Racers</text>
+        {racers.map((r, i) => {
+          const ly = 36 + i * 22
+          const isMyPick = bet?.racerId === r.id
+          return (
+            <g key={r.id}>
+              <circle cx="24" cy={ly} r="8" fill={r.color} stroke={isMyPick ? '#fff' : 'none'} strokeWidth="2"/>
+              <text x="24" y={ly + 4} textAnchor="middle" fontSize="9" fontWeight="500" fill="#000">{i + 1}</text>
+              <text x="38" y={ly + 4} fontSize="11" fill="var(--color-text-primary,#222)" fontWeight={isMyPick ? '500' : '400'}>
+                {r.name}{isMyPick ? ' (your pick)' : ''}
+              </text>
+            </g>
+          )
+        })}
+
+        {dotPositions.map(({ r, i, x, y }) => (
+          <g
+            key={r.id}
+            id={'dot-' + r.id}
+            style={{ transition: 'transform 0.15s linear' }}
+            transform={`translate(${x}, ${y})`}
+          >
+            <circle
+              r="12"
+              fill={r.color}
+              stroke={bet?.racerId === r.id ? '#fff' : 'rgba(0,0,0,0.3)'}
+              strokeWidth={bet?.racerId === r.id ? 3 : 1}
+            />
+            <text
+              id={'lbl-' + r.id}
+              x="0" y="4"
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="500"
+              fill="#000"
+              style={{ pointerEvents: 'none' }}
+            >{i + 1}</text>
+          </g>
+        ))}
+      </svg>
     </div>
   )
 }
 
 // --- Results Phase ------------------------------------------------------------
 
-function ResultsPhase({ winnerId, bet, odds, balance }) {
-  const winner   = RACERS.find(r => r.id === winnerId) ?? RACERS[0]
-  const betRacer = bet ? RACERS.find(r => r.id === bet.racerId) : null
+function ResultsPhase({ winnerId, bet, odds, balance, racers }) {
+  const winner   = racers.find(r => r.id === winnerId) ?? racers[0]
+  const betRacer = bet ? racers.find(r => r.id === bet.racerId) : null
   const won      = bet?.racerId === winnerId
   const payout   = won ? calcPayout(bet.amount, odds?.[winnerId] ?? 1) : 0
 
   return (
     <div className="g-results-layout">
       <div className="g-winner-card" style={{ '--wc': winner.color }}>
-        <img src={winner.image ?? RACERS[0].image} alt={winner.name} className="g-winner-img" />
+        {winner.image && (
+          <img src={winner.image} alt={winner.name} className="g-winner-img" />
+        )}
         <div>
           <p className="g-winner-label">Winner</p>
           <h2 className="g-winner-name">{winner.name}</h2>
@@ -202,19 +281,53 @@ function ResultsPhase({ winnerId, bet, odds, balance }) {
 // --- Main ---------------------------------------------------------------------
 
 export default function Gambling() {
+  const { user, refreshMe } = useAuth()
+
   const [phase,     setPhase]     = useState(null)
   const [odds,      setOdds]      = useState({})
   const [timeLeft,  setTimeLeft]  = useState(BETTING_DURATION)
   const [positions, setPositions] = useState({})
   const [winnerId,  setWinnerId]  = useState(null)
   const [connected, setConnected] = useState(false)
+  const [racers,    setRacers]    = useState([])
 
-  const [balance, setBalance] = useState(STARTING_BALANCE)
+  const [balance, setBalance] = useState(null)
   const [bet,     setBet]     = useState(null)
 
-  const betRef   = useRef(null)
-  const oddsRef  = useRef(null)
-  const phaseRef = useRef(null)
+  const betRef     = useRef(null)
+  const oddsRef    = useRef(null)
+  const phaseRef   = useRef(null)
+  const balanceRef = useRef(null)
+
+  // Load balance from user account when user loads
+  useEffect(() => {
+    if (user?.coins !== undefined) {
+      setBalance(user.coins)
+      balanceRef.current = user.coins
+    } else if (user === null) {
+      setBalance(STARTING_BALANCE)
+      balanceRef.current = STARTING_BALANCE
+    }
+  }, [user])
+
+  // Keep balanceRef in sync
+  useEffect(() => {
+    balanceRef.current = balance
+  }, [balance])
+
+  // Save coins to server
+  async function saveCoins(newBalance) {
+    if (!user) return
+    await fetch(import.meta.env.VITE_GRAPHQL_URL, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `mutation { updateCoins(coins: ${newBalance}) { coins } }`
+      })
+    })
+    refreshMe()
+  }
 
   useEffect(() => {
     const socket = io(SOCKET_URL)
@@ -229,19 +342,25 @@ export default function Gambling() {
         const currentBet  = betRef.current
         const currentOdds = oddsRef.current
         if (currentBet && currentOdds) {
+          let newBalance
           if (currentBet.racerId === state.winnerId) {
             const p = calcPayout(currentBet.amount, currentOdds[state.winnerId])
-            setBalance(b => b - currentBet.amount + p)
+            newBalance = balanceRef.current - currentBet.amount + p
           } else {
-            setBalance(b => b - currentBet.amount)
+            newBalance = balanceRef.current - currentBet.amount
           }
+          setBalance(newBalance)
+          saveCoins(newBalance)
         }
       }
 
       if (state.phase === 'betting' && prevPhase === 'results') {
         setBet(null)
         betRef.current = null
-        setBalance(b => b <= 0 ? STARTING_BALANCE : b)
+        if (balanceRef.current <= 0) {
+          setBalance(STARTING_BALANCE)
+          saveCoins(STARTING_BALANCE)
+        }
       }
 
       phaseRef.current = state.phase
@@ -251,6 +370,7 @@ export default function Gambling() {
       setTimeLeft(state.timeLeft)
       setPositions(state.positions)
       setWinnerId(state.winnerId)
+      if (state.racers?.length) setRacers(state.racers)
     })
 
     return () => socket.disconnect()
@@ -262,7 +382,7 @@ export default function Gambling() {
     betRef.current = b
   }
 
-  if (!connected || !phase) {
+  if (!connected || !phase || balance === null || racers.length === 0) {
     return (
       <>
         <Header title="STABLEMETRICS RACING" />
@@ -287,15 +407,17 @@ export default function Gambling() {
             timeLeft={timeLeft} odds={odds}
             balance={balance} bet={bet}
             onPlaceBet={handlePlaceBet}
+            racers={racers}
           />
         )}
         {phase === 'racing' && (
-          <RacePhase positions={positions} bet={bet} />
+          <RacePhase positions={positions} bet={bet} racers={racers} />
         )}
         {phase === 'results' && (
           <ResultsPhase
             winnerId={winnerId} bet={bet}
             odds={odds} balance={balance}
+            racers={racers}
           />
         )}
       </main>

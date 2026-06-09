@@ -8,7 +8,6 @@ import Footer from '../components/Footer'
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/characters', label: 'Characters' },
-  { to: '/score-calculator', label: 'Score calculator' },
   { to: '/trainers', label: 'Browse trainers' },
 ]
 
@@ -16,7 +15,7 @@ const GET_TRAINER = gql`
   query GetTrainer($id: ID!) {
     trainer(id: $id) {
       id name trainerId comment rank
-      followers totalTrained highestScore
+      followers totalTrained highestScore coins
       team { uma scenario score }
       supportSetup
     }
@@ -61,6 +60,7 @@ export default function TrainerProfile() {
             <div><span className="label">Followers</span><span className="value">{trainer.followers}</span></div>
             <div><span className="label">Total Trained</span><span className="value">{trainer.totalTrained}</span></div>
             <div><span className="label">Highest Score</span><span className="value">{trainer.highestScore?.toLocaleString()}</span></div>
+            <div><span className="label">Coins</span><span className="value">🪙 {trainer.coins?.toLocaleString()}</span></div>
           </div>
         </section>
 

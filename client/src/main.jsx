@@ -13,7 +13,6 @@ const client = new ApolloClient({
     uri: import.meta.env.VITE_GRAPHQL_URL,
     credentials: 'include',   // envoie le cookie HttpOnly avec chaque requête Apollo
   }),
-  link: new HttpLink({ uri: import.meta.env.VITE_GRAPHQL_URL }),
   cache: new InMemoryCache(),
 })
 

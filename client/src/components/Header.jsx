@@ -19,9 +19,8 @@ export default function Header({ title }) {
 
       {user ? (
         <div className="header-user">
-          <Link to="/my-profile" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', color: 'inherit' }}>
+          <Link to="/my-profile" title="My profile" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
             <UserCircle2 size={28} strokeWidth={1.5} />
-            <span className="header-username">{user.email}</span>
           </Link>
           <button
             onClick={handleLogout}
