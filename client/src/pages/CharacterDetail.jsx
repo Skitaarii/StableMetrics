@@ -124,12 +124,26 @@ export default function CharacterDetail() {
         {umaLoading ? (
           <p style={{ textAlign: 'center' }}>Loading profile…</p>
         ) : (
-          <div className="character-image-wrapper" style={{ display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+          <div className="character-image-wrapper" style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            gap: '1rem',
+            flexWrap: 'wrap',
+            padding: '0 1rem',
+          }}>
             {umaProfile?.image && (
-              <img src={umaProfile.image} alt={umaProfile.nameEn} style={{ maxWidth: '340px', width: '100%', height: 'auto' }} />
+              <img 
+                src={umaProfile.image} 
+                alt={umaProfile.nameEn} 
+                style={{ maxWidth: '340px', width: '100%', height: 'auto', flexShrink: 1 }} 
+              />
             )}
             {character.racewear && (
-              <img src={character.racewear} alt={`${umaProfile.nameEn ?? ''} racewear`} style={{ maxWidth: '340px', width: '100%', height: 'auto' }} />
+              <img 
+                src={character.racewear} 
+                alt={`${umaProfile.nameEn ?? ''} racewear`} 
+                style={{ maxWidth: '340px', width: '100%', height: 'auto', flexShrink: 1 }} 
+              />
             )}
           </div>
         )}

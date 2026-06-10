@@ -21,13 +21,19 @@ export default function Terms() {
       </main>
 
         <style>{`
-            .important-terms {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-            }
-        `}
-        </style>
+          .important-terms {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+          }
+
+          .important-terms-img {
+            max-width: 400px;
+            width: 100%;
+            height: auto;
+          }
+        `}</style>
 
       <Footer />
     </>

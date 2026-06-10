@@ -1,58 +1,60 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@apollo/client/react'
+import { gql } from '@apollo/client'
 import Header from '../components/Header'
 import Nav from '../components/Nav'
 import Footer from '../components/Footer'
 
-const NAV_LINKS = [{ to: '/', label: 'Home page' }]
+const GET_CHARACTERS = gql`
+  query {
+    characters {
+      id
+      name
+      image
+    }
+  }
+`
+
+const NAV_LINKS = [
+  { to: '/', label: 'Home page' },
+  { to: '/gambling', label: 'Gambling' },
+]
 
 export default function Characters() {
-  const [characters, setCharacters] = useState([])
   const [search, setSearch] = useState('')
+  const { data, loading, error } = useQuery(GET_CHARACTERS)
 
-  useEffect(() => {
-    fetch(import.meta.env.VITE_GRAPHQL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: `{ characters { id name image } }` }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        console.log('GraphQL response:', JSON.stringify(data))
-        setCharacters(data.data.characters)
-      })
-      .catch(err => console.error('FETCH ERROR:', err))
-  }, [])
-
-  const filtered = (characters ?? []).filter((c) =>
+  const characters = data?.characters ?? []
+  const filtered = characters.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
     <>
-      <header>
-        <h1 className="small_title">CHARACTERS</h1>
-        <div className="controls" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              padding: '0.4rem 0.8rem',
-              borderRadius: '8px',
-              border: '1px solid rgba(255,255,255,0.5)',
-              background: 'rgba(255,255,255,0.2)',
-              color: 'white',
-              fontSize: '1rem',
-            }}
-          />
-        </div>
-      </header>
+      <Header title="CHARACTERS" />
       <Nav links={NAV_LINKS} />
       <main>
         <section>
           <h2>Character list</h2>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                fontSize: '1rem',
+                width: '100%',
+                maxWidth: '400px',
+              }}
+            />
+          </div>
+          {loading && <p style={{ textAlign: 'center' }}>Loading...</p>}
+          {error && <p style={{ textAlign: 'center', color: 'red' }}>Failed to load characters.</p>}
           <div className="character-list">
             {filtered.map((character) => (
               <article key={character.id}>

@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
   { to: '/characters', label: 'Characters' },
+  { to: '/gambling', label: 'Gambling' },
 ]
 
 export default function TrainerList() {
