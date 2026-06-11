@@ -21,11 +21,7 @@ const trainerSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   name:         { type: String, default: null, maxlength: [50, 'Name too long'] },
   trainerId:    { type: String, default: null, maxlength: [30, 'Trainer ID too long'] },
-  rank:         { type: String, default: 'Unranked',
-                  enum: {
-                    values: ['Unranked', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond'],
-                    message: '{VALUE} is not a valid rank'
-                  }},
+  rank:         { type: String, default: 'Unranked' },
   comment:      { type: String, default: '', maxlength: [300, 'Comment too long'] },
   followers:    { type: Number, default: 0, min: [0, 'Followers cannot be negative'] },
   coins:        { type: Number, default: 1000, min: [0, 'Coins cannot be negative'] },
